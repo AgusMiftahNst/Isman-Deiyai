@@ -3670,7 +3670,9 @@ function ScoreTable({
   participantCount, 
   updateScores, 
   onUpdateParticipantCount,
-  isReadOnly
+  isReadOnly,
+  riskType,
+  selectedYear
 }: { 
   title: string, 
   type: 'dampak' | 'kemungkinan', 
@@ -3679,7 +3681,9 @@ function ScoreTable({
   participantCount: number,
   updateScores: (id: string, type: 'dampak' | 'kemungkinan', scores: number[]) => Promise<void>,
   onUpdateParticipantCount: (newCount: number) => void,
-  isReadOnly?: boolean
+  isReadOnly?: boolean,
+  riskType?: 'strategis' | 'operasional',
+  selectedYear?: string
 }) {
   const calculateAvg = (scores?: number[]) => {
     if (!scores || scores.length === 0) return '0.00';
@@ -3690,6 +3694,8 @@ function ScoreTable({
   };
 
   const currentParticipants = alphabet.slice(0, participantCount);
+  const prefix = riskType === 'operasional' ? 'ROO' : 'RSO';
+  const yr = (selectedYear || '2026').slice(-2);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -3752,7 +3758,7 @@ function ScoreTable({
                 <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-3 py-3 text-slate-400 text-center">{idx + 1}</td>
                   <td className="px-3 py-3">
-                    <p className="font-bold text-blue-600 mb-0.5">{row.risikoKode || 'RSO.26.XX.YY.ZZ'}</p>
+                    <p className="font-bold text-blue-600 mb-0.5">{row.risikoKode || `${prefix}.${yr}.XX.YY.ZZ`}</p>
                     <p className="text-slate-600 whitespace-pre-wrap leading-tight mb-2">{row.risikoUraian || '(Uraian belum diisi di Menu 2)'}</p>
                     
                     {(() => {
@@ -3988,6 +3994,8 @@ function RiskAnalysisView({ user, isReadOnly, riskType, selectedYear }: { user: 
             updateScores={updateScores}
             onUpdateParticipantCount={updateParticipantCount}
             isReadOnly={isReadOnly}
+            riskType={riskType}
+            selectedYear={selectedYear}
           />
         </div>
 
@@ -4011,6 +4019,8 @@ function RiskAnalysisView({ user, isReadOnly, riskType, selectedYear }: { user: 
             updateScores={updateScores}
             onUpdateParticipantCount={updateParticipantCount}
             isReadOnly={isReadOnly}
+            riskType={riskType}
+            selectedYear={selectedYear}
           />
         </div>
       </div>
@@ -4097,7 +4107,7 @@ function RiskAnalysisView({ user, isReadOnly, riskType, selectedYear }: { user: 
                   <tr key={row.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-6 text-center font-bold text-slate-400 border-r border-slate-100">{idx + 1}</td>
                     <td className="px-4 py-6 border-r border-slate-100 min-w-[200px]">
-                      <p className="text-blue-600 font-black mb-1 text-[9px]">{row.risikoKode || (riskType === 'operasional' ? 'ROO...' : 'RSO...')}</p>
+                      <p className="text-blue-600 font-black mb-1 text-[9px]">{row.risikoKode || (riskType === 'operasional' ? `ROO.${(selectedYear || '2026').slice(-2)}...` : `RSO.${(selectedYear || '2026').slice(-2)}...`)}</p>
                       <p className="text-slate-700 font-medium leading-relaxed uppercase text-[10px] mb-2">{row.risikoUraian || '(Uraian belum diisi)'}</p>
                       
                       {(() => {
@@ -4391,7 +4401,7 @@ function RiskResidualView({ user, isReadOnly, riskType, selectedYear }: { user: 
                   <tr key={row.id} className="hover:bg-slate-50 transition-colors align-top">
                     <td className="px-2 py-4 font-bold text-slate-400 text-center">{idx + 1}</td>
                     <td className="px-3 py-4 min-w-[200px]">
-                      <p className="font-black text-blue-600 text-[9px] mb-1">{row.risikoKode || (riskType === 'operasional' ? 'ROO...' : 'RSO...')}</p>
+                      <p className="font-black text-blue-600 text-[9px] mb-1">{row.risikoKode || (riskType === 'operasional' ? `ROO.${(selectedYear || '2026').slice(-2)}...` : `RSO.${(selectedYear || '2026').slice(-2)}...`)}</p>
                       <p className="font-medium text-slate-700 uppercase leading-tight mb-2">{row.risikoUraian || '(Belum diisi)'}</p>
                       
                       {(() => {
@@ -4691,7 +4701,7 @@ function RiskTreatmentView({ user, isReadOnly, riskType, selectedYear }: { user:
                   <td className="px-2 py-4 font-bold text-slate-400">{idx + 1}</td>
                   <td className="px-3 py-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-black text-blue-600 text-[9px]">{row.risikoKode || (riskType === 'operasional' ? 'ROO...' : 'RSO...')}</span>
+                      <span className="font-black text-blue-600 text-[9px]">{row.risikoKode || (riskType === 'operasional' ? `ROO.${(selectedYear || '2026').slice(-2)}...` : `RSO.${(selectedYear || '2026').slice(-2)}...`)}</span>
                       <span className="px-1.5 py-0.5 bg-slate-100 text-[7px] font-black rounded uppercase">Score: {row.resScore.toFixed(2)}</span>
                     </div>
                     <p className="font-medium text-slate-700 uppercase text-[9px] leading-tight line-clamp-2">{row.risikoUraian}</p>
@@ -4847,7 +4857,7 @@ function RiskMapView({ user, riskType, selectedYear }: { user: any, riskType: 's
                   <div key={r.id} className="text-[9px] flex gap-2 items-start bg-white p-2 rounded border border-slate-200">
                      <span className="bg-slate-900 text-white w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center font-bold">{idx + 1}</span>
                      <div>
-                       <p className="font-bold text-blue-600 leading-none mb-1">{r.risikoKode || (riskType === 'operasional' ? 'ROO...' : 'RSO...')}</p>
+                       <p className="font-bold text-blue-600 leading-none mb-1">{r.risikoKode || (riskType === 'operasional' ? `ROO.${(selectedYear || '2026').slice(-2)}...` : `RSO.${(selectedYear || '2026').slice(-2)}...`)}</p>
                        <p className="text-slate-500 line-clamp-2">{r.risikoUraian || 'N/A'}</p>
                        <p className="text-[8px] font-black mt-1 text-slate-400 tracking-tighter">POSISI: {r.avgKemungkinan}, {r.avgDampak}</p>
                      </div>
@@ -4990,6 +5000,35 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
     });
     return () => unsubscribe();
   }, [contextId]);
+
+  // Synchronize risk code prefix and year with selectedYear & riskType if needed
+  useEffect(() => {
+    if (isReadOnly || !rows || rows.length === 0) return;
+    const prefix = riskType === 'operasional' ? 'ROO' : 'RSO';
+    const yearCode = (selectedYear || '2026').slice(-2);
+    
+    const mismatches = rows.filter(r => {
+      if (!r.risikoKode) return true;
+      const parts = r.risikoKode.split('.');
+      return parts.length >= 5 && (parts[0] !== prefix || parts[1] !== yearCode);
+    });
+
+    if (mismatches.length > 0) {
+      const batch = writeBatch(db);
+      mismatches.forEach(r => {
+        const parts = (r.risikoKode || `${prefix}.${yearCode}.01.01.01`).split('.');
+        const p1 = parts[2] || '01';
+        const p2 = parts[3] || '01';
+        const p3 = parts[4] || '01';
+        const corrected = `${prefix}.${yearCode}.${p1}.${p2}.${p3}`;
+        batch.update(doc(db, 'risk_identification', r.id), {
+          risikoKode: corrected,
+          updatedAt: new Date().toISOString()
+        });
+      });
+      batch.commit().catch(err => console.error("Auto-syncing risk code year:", err));
+    }
+  }, [rows, selectedYear, riskType, isReadOnly]);
 
   const addRow = useCallback(async (initTujuan = '', initIndikator = '', customOrder?: number) => {
     if (isReadOnly) return;
@@ -5426,12 +5465,15 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
     const normalizedVal = val.padStart(2, '0');
     
     const prefix = riskType === 'operasional' ? 'ROO' : 'RSO';
-    const defaultCode = `${prefix}.26.01.01.01`;
+    const yearCode = (selectedYear || '2026').slice(-2);
+    const defaultCode = `${prefix}.${yearCode}.01.01.01`;
     let parts = (currentFullCode || defaultCode).split('.');
     
     if (parts.length < 5) {
-      parts = [prefix, '26', '01', '01', '01'];
+      parts = [prefix, yearCode, '01', '01', '01'];
     }
+    parts[0] = prefix;
+    parts[1] = yearCode;
 
     const partIndex = segmentIndex + 2; 
     parts[partIndex] = normalizedVal;
@@ -5443,7 +5485,9 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
         const batch = writeBatch(db);
         rows.forEach(r => {
           let rParts = (r.risikoKode || defaultCode).split('.');
-          if (rParts.length < 5) rParts = [prefix, '26', '01', '01', '01'];
+          if (rParts.length < 5) rParts = [prefix, yearCode, '01', '01', '01'];
+          rParts[0] = prefix;
+          rParts[1] = yearCode;
           rParts[segmentIndex + 2] = normalizedVal;
           const rNewCode = rParts.join('.');
           
@@ -5466,7 +5510,7 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
           <h4 className="font-bold text-[10px] uppercase italic tracking-widest">Formulir Kertas Kerja Identifikasi Risiko {riskType === 'operasional' ? 'Operasional' : 'Strategis'} OPD</h4>
-          <span className="text-[10px] text-slate-400">Tahun 2026 {user.role === 'User' ? `(Milik ${user.username})` : '(Izin Luas)'}</span>
+          <span className="text-[10px] text-slate-400">Tahun {selectedYear} {user.role === 'User' ? `(Milik ${user.username})` : '(Izin Luas)'}</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-[10px] text-left border-collapse">
@@ -5579,7 +5623,8 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
                             <td className="px-2 py-4 border-r border-slate-100 font-mono text-blue-600 font-bold bg-slate-50/50 text-center align-middle" rowSpan={subRows.length}>
                               {(() => {
                                 const prefix = riskType === 'operasional' ? 'ROO' : 'RSO';
-                                const defaultCode = `${prefix}.26.01.01.01`;
+                                const yearCode = (selectedYear || '2026').slice(-2);
+                                const defaultCode = `${prefix}.${yearCode}.01.01.01`;
                                 const codeParts = (row.risikoKode || defaultCode).split('.');
                                 const p1 = codeParts[2] || '01'; // Segment 2
                                 const p2 = codeParts[3] || '01'; // Segment 3
@@ -5593,7 +5638,7 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
                                 
                                 return (
                                   <div className="flex flex-col items-center gap-1 group/code">
-                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest leading-none mb-0.5">{prefix}.26</span>
+                                    <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest leading-none mb-0.5">{prefix}.{yearCode}</span>
                                     <div className="flex items-center justify-center gap-0.5 text-[10px]">
                                       <EditableInput 
                                         type="text"
@@ -6239,7 +6284,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             )}
           </tbody>
 
-          <TableHeader title={riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran OPD'} rightLabel={riskType === 'operasional' ? '' : '2026'} />
+          <TableHeader title={riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran OPD'} rightLabel={riskType === 'operasional' ? '' : selectedYear} />
           <tbody>
             {(formData.ikuSasaran || []).map((i: any, idx: number) => (
               <tr key={idx} className="border-b border-slate-200 last:border-0 group">
@@ -6381,7 +6426,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             )}
           </tbody>
 
-          <TableHeader title={riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD'} rightLabel="2026" />
+          <TableHeader title={riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD'} rightLabel={selectedYear} />
           <tbody>
             {(formData.ikuProgram || []).map((i: any, idx: number) => (
               <tr key={idx} className="border-b border-slate-200 last:border-0 h-8 group">
