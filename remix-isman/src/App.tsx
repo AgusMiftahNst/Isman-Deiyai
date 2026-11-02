@@ -801,7 +801,7 @@ export default function App() {
 
         const ws4 = workbook.addWorksheet('4. Risiko Aktual');
         const col4_1 = ['No', 'Risiko Teridentifikasi', 'Risiko Awal', '', '', '', 'Pengendalian Saat Ini', 'Celah (Gap)', 'Risiko Sisa (Residual)', '', '', ''];
-        const col4_2 = ['', '', 'D', 'K', 'Skor', 'Level', '', '', 'D', 'S', 'Skor', 'Level'];
+        const col4_2 = ['', '', 'D', 'K', 'Skor', 'Level', '', '', 'D', 'K', 'Skor', 'Level'];
         
         ws4.getRow(1).values = col4_1;
         ws4.getRow(2).values = col4_2;
@@ -1199,7 +1199,7 @@ export default function App() {
                 { content: 'SKOR', styles: { halign: 'center' } },
                 { content: 'LEVEL', styles: { halign: 'center' } },
                 { content: 'D', styles: { halign: 'center' } },
-                { content: 'S', styles: { halign: 'center' } },
+                { content: 'K', styles: { halign: 'center' } },
                 { content: 'SKOR', styles: { halign: 'center' } },
                 { content: 'LEVEL', styles: { halign: 'center' } }
               ]
@@ -4385,7 +4385,7 @@ function RiskResidualView({ user, isReadOnly, riskType, selectedYear }: { user: 
                 <th className="px-2 py-2 text-center border-r border-slate-700 w-20 tracking-tighter">Level</th>
                 {/* Residual Risk Headers */}
                 <th className="px-2 py-2 text-center border-r border-slate-700 w-12">D</th>
-                <th className="px-2 py-2 text-center border-r border-slate-700 w-12">S</th>
+                <th className="px-2 py-2 text-center border-r border-slate-700 w-12">K</th>
                 <th className="px-2 py-2 text-center border-r border-slate-700 w-16">Skor</th>
                 <th className="px-2 py-2 text-center w-24 tracking-tighter">Level</th>
               </tr>
