@@ -705,7 +705,7 @@ export default function App() {
         ws1.getCell(curR + 9, sigX).value = `NIP. ${ctx.ttdNip || '-'}`;
 
         const ws2 = workbook.addWorksheet('2. Identifikasi');
-        const ws2Hdr = ['No', riskType === 'operasional' ? 'Subkegiatan' : 'Tujuan / Sasaran', riskType === 'operasional' ? 'Indikator Keluaran' : 'Indikator Kinerja', 'Risiko (Uraian)', 'Risiko (Kode)', 'Pemilik', 'Sebab (Uraian)', 'Sebab (Sumber)', 'Control (C/UC)', 'Dampak (Akibat)', 'Dampak (Pihak)'];
+        const ws2Hdr = ['No', riskType === 'operasional' ? 'Subkegiatan' : 'Tujuan / Sasaran', riskType === 'operasional' ? 'Indikator Keluaran' : 'Indikator Kinerja', 'Risiko (Uraian)', 'Risiko (Kode)', 'Pemilik', 'Sebab (Uraian)', 'Sebab (Sumber)', 'Control (C/UC)', 'Akibat (Uraian)', 'Akibat (Pihak)'];
         ws2.getRow(1).values = ws2Hdr;
         styleHdr(ws2, 1, ws2Hdr.length);
         
@@ -1939,7 +1939,7 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
 
       // 2. Identifikasi Sheet
       const ws2 = workbook.addWorksheet('IDENTIFIKASI');
-      const ws2Hdr = ['NAMA OPD', 'NO', 'KODE', 'URAIAN RISIKO', 'TUJUAN / SASARAN', 'INDIKATOR', 'PEMILIK', 'SEBAB', 'SUMBER', 'C/UC', 'DAMPAK', 'PIHAK'];
+      const ws2Hdr = ['NAMA OPD', 'NO', 'KODE', 'URAIAN RISIKO', 'TUJUAN / SASARAN', 'INDIKATOR', 'PEMILIK', 'SEBAB', 'SUMBER', 'C/UC', 'AKIBAT', 'PIHAK'];
       ws2.getRow(1).values = ws2Hdr;
       styleHdr(ws2, 1, ws2Hdr.length);
       let r2 = 2;
@@ -2068,7 +2068,7 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
 
       autoTable(doc, {
         startY: 20,
-        head: [['NAMA OPD', 'KODE', 'URAIAN RISIKO', 'SEBAB', 'DAMPAK']],
+        head: [['NAMA OPD', 'KODE', 'URAIAN RISIKO', 'SEBAB', 'AKIBAT']],
         body: body,
         headStyles: { fillColor: themeColor },
         styles: { fontSize: 6 },
@@ -3768,7 +3768,7 @@ function ScoreTable({
                           {sRows.map((sub: any, sIdx: number) => (
                             <div key={sIdx} className="bg-slate-50 p-1.5 rounded text-[8px] border border-slate-100">
                               <p className="text-slate-500 italic"><span className="font-bold opacity-50">Sebab {sIdx + 1}:</span> {sub.sebabUraian || '-'}</p>
-                              <p className="text-red-700/70"><span className="font-bold opacity-50">Dampak {sIdx + 1}:</span> {sub.dampakUraian || '-'}</p>
+                              <p className="text-slate-700"><span className="font-bold opacity-60">Akibat {sIdx + 1}:</span> {sub.dampakUraian || '-'}</p>
                             </div>
                           ))}
                         </div>
@@ -4114,7 +4114,7 @@ function RiskAnalysisView({ user, isReadOnly, riskType, selectedYear }: { user: 
                             {sRows.map((sub: any, sIdx: number) => (
                               <div key={sIdx} className="bg-slate-50 p-1.5 rounded text-[8px] border border-slate-100">
                                 <p className="text-slate-500 italic"><span className="font-bold opacity-50">Sebab {sIdx + 1}:</span> {sub.sebabUraian || '-'}</p>
-                                <p className="text-red-700/70"><span className="font-bold opacity-50">Dampak {sIdx + 1}:</span> {sub.dampakUraian || '-'}</p>
+                                <p className="text-slate-700"><span className="font-bold opacity-60">Akibat {sIdx + 1}:</span> {sub.dampakUraian || '-'}</p>
                               </div>
                             ))}
                           </div>
@@ -4407,10 +4407,10 @@ function RiskResidualView({ user, isReadOnly, riskType, selectedYear }: { user: 
                           <div className="space-y-1">
                             {sRows.map((sub: any, sIdx: number) => (
                               <div key={sIdx} className="bg-slate-50 p-1.5 rounded text-[8px] border border-slate-100 italic">
-                                 <p className="text-slate-500 font-bold opacity-50 uppercase text-[7px] mb-0.5">Sebab {sIdx + 1}</p>
-                                 <p className="text-slate-600 mb-1">{sub.sebabUraian || '-'}</p>
-                                 <p className="text-red-800 font-bold opacity-30 uppercase text-[7px] mb-0.5">Dampak {sIdx + 1}</p>
-                                 <p className="text-red-600">{sub.dampakUraian || '-'}</p>
+                                 <p className="text-slate-500 font-bold opacity-60 uppercase text-[7px] mb-0.5">Sebab {sIdx + 1}</p>
+                                 <p className="text-slate-700 mb-1">{sub.sebabUraian || '-'}</p>
+                                 <p className="text-slate-500 font-bold opacity-60 uppercase text-[7px] mb-0.5">Akibat {sIdx + 1}</p>
+                                 <p className="text-slate-800">{sub.dampakUraian || '-'}</p>
                               </div>
                             ))}
                           </div>
@@ -5480,14 +5480,14 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
                 <th className="px-2 py-3 border-r border-slate-200 min-w-[120px]" rowSpan={2}>Pemilik</th>
                 <th className="px-2 py-3 border-r border-slate-200" colSpan={2}>Sebab</th>
                 <th className="px-1 py-3 border-r border-slate-200 w-16" rowSpan={2}>C/UC</th>
-                <th className="px-2 py-3 border-r border-slate-200" colSpan={2}>Dampak</th>
+                <th className="px-2 py-3 border-r border-slate-200" colSpan={2}>Akibat</th>
               </tr>
               <tr className="border-t border-slate-200 bg-slate-50/50">
                 <th className="px-2 py-2 border-r border-slate-200 font-black min-w-[200px]">Uraian</th>
                 <th className="px-2 py-2 border-r border-slate-200 font-black w-32">Kode</th>
                 <th className="px-2 py-2 border-r border-slate-200 font-black min-w-[200px]">Uraian</th>
                 <th className="px-2 py-2 border-r border-slate-200 font-black min-w-[100px]">Sumber</th>
-                <th className="px-2 py-2 border-r border-slate-200 font-black min-w-[200px]">Uraian Akibat</th>
+                <th className="px-2 py-2 border-r border-slate-200 font-black min-w-[200px]">Uraian</th>
                 <th className="px-2 py-2 font-black min-w-[120px]">Pihak Terkena</th>
               </tr>
             </thead>
@@ -5700,9 +5700,9 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
                             </select>
                           </div>
                         </td>
-                        <td className="px-2 py-4 border-r border-slate-100 text-red-600 bg-red-50/10">
+                        <td className="px-2 py-4 border-r border-slate-100 text-slate-900 bg-white">
                           <EditableTextarea 
-                            className="w-full bg-transparent p-0 outline-none resize-none disabled:text-slate-500 font-bold leading-relaxed" 
+                            className="w-full bg-transparent p-0 outline-none resize-none text-slate-900 disabled:text-slate-500 font-medium leading-relaxed" 
                             rows={3} 
                             value={sub.dampakUraian} 
                             onChange={val => updateSubRowField(row.id, subRows, sIdx, 'dampakUraian', val)}
@@ -5766,7 +5766,7 @@ function RiskIdentificationView({ user, isReadOnly, riskType, selectedYear }: { 
               <p className="text-slate-500 text-[11px] mb-8 font-medium italic leading-relaxed">
                 {deleteTarget.type === 'row' 
                   ? "Apakah anda yakin ingin menghapus baris risiko ini? Data yang terkait di menu lain juga akan terdampak."
-                  : "Apakah anda yakin ingin menghapus baris sebab/dampak ini?"}
+                  : "Apakah anda yakin ingin menghapus baris sebab/akibat ini?"}
               </p>
               <div className="flex gap-3">
                 <button 
@@ -7338,7 +7338,7 @@ function RiskOccurrenceMonitoringView({ user, isReadOnly, riskType, selectedYear
                           {sRows.map((sub: any, sIdx: number) => (
                             <div key={sIdx} className="bg-slate-50 p-1 rounded text-[7px] border border-slate-100">
                               <p className="text-slate-400"><span className="font-bold opacity-70">Identified Sebab:</span> {sub.sebabUraian || '-'}</p>
-                              <p className="text-red-600/50"><span className="font-bold opacity-70">Identified Dampak:</span> {sub.dampakUraian || '-'}</p>
+                              <p className="text-slate-700"><span className="font-bold opacity-70">Identified Akibat:</span> {sub.dampakUraian || '-'}</p>
                             </div>
                           ))}
                         </div>
