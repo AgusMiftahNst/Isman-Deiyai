@@ -6229,18 +6229,15 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
 
       {/* Tables Section */}
       <div className="space-y-6 border border-slate-900 mt-6">
-        {!isReadOnly && (
-          <div className="bg-slate-100 px-4 py-2 border-b border-slate-900 flex flex-wrap justify-between items-center gap-2">
-            <span className="text-[10px] font-black uppercase text-slate-700 tracking-wider">
-              {riskType === 'operasional' ? 'Tabel Komponen Operasional (Program, Kegiatan Utama, Subkegiatan, Indikator Keluaran)' : 'Tabel Komponen Strategis'}
+        {!isReadOnly && riskType === 'operasional' && (
+          <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200 flex flex-wrap justify-between items-center gap-2">
+            <span className="text-[8px] font-bold uppercase text-slate-500 tracking-wider">
+              Komponen Operasional: Program, Kegiatan Utama, Subkegiatan, Indikator Keluaran
             </span>
             {(((formData.sasaran || []).length > 0) || ((formData.ikuSasaran || []).length > 0) || ((formData.program || []).length > 0) || ((formData.ikuProgram || []).length > 0)) && (
               <button
                 onClick={() => {
-                  const msg = riskType === 'operasional'
-                    ? "Apakah Anda yakin ingin menghapus SEMUA baris sekaligus di Program, Kegiatan Utama, Subkegiatan, dan Indikator Keluaran?\n\nTindakan ini akan mengosongkan ke-4 tabel tersebut."
-                    : "Apakah Anda yakin ingin menghapus SEMUA baris pada tabel sasaran, kegiatan, program, dan IKU?\n\nTindakan ini akan mengosongkan ke-4 tabel tersebut.";
-                  if (window.confirm(msg)) {
+                  if (window.confirm("Apakah Anda yakin ingin menghapus SEMUA baris sekaligus di Program, Kegiatan Utama, Subkegiatan, dan Indikator Keluaran?\n\nTindakan ini akan mengosongkan ke-4 tabel tersebut.")) {
                     updateData({
                       sasaran: [],
                       ikuSasaran: [],
@@ -6249,10 +6246,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                     });
                   }
                 }}
-                className="flex items-center gap-1.5 text-[10px] font-black text-red-600 hover:text-white hover:bg-red-600 bg-white border border-red-300 px-3 py-1 rounded shadow-sm transition-all uppercase tracking-wider cursor-pointer"
+                className="flex items-center gap-1 text-[8px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 bg-white border border-red-200 px-2 py-0.5 rounded shadow-xs transition-all uppercase tracking-wider cursor-pointer"
                 title="Hapus semua baris pada ke-4 tabel di atas sekaligus"
               >
-                <Trash2 size={12} /> Hapus Semua Baris (4 Tabel Sekaligus)
+                <Trash2 size={10} /> Hapus Semua (4 Tabel Sekaligus)
               </button>
             )}
           </div>
@@ -6318,10 +6315,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             updateData({ sasaran: [] });
                           }
                         }}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
+                        className="flex items-center gap-1 text-[8px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
                         title={`Hapus semua baris ${riskType === 'operasional' ? 'Program' : 'Sasaran Strategis'}`}
                       >
-                        <Trash2 size={12} /> Hapus Semua {riskType === 'operasional' ? 'Program' : 'Sasaran'}
+                        <Trash2 size={10} /> Hapus Semua
                       </button>
                     )}
                   </div>
@@ -6417,10 +6414,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             updateData({ ikuSasaran: [] });
                           }
                         }}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
+                        className="flex items-center gap-1 text-[8px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
                         title={`Hapus semua baris ${riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran'}`}
                       >
-                        <Trash2 size={12} /> Hapus Semua {riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran'}
+                        <Trash2 size={10} /> Hapus Semua
                       </button>
                     )}
                   </div>
@@ -6488,10 +6485,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             updateData({ program: [] });
                           }
                         }}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
+                        className="flex items-center gap-1 text-[8px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
                         title={`Hapus semua baris ${riskType === 'operasional' ? 'Subkegiatan' : 'Program'}`}
                       >
-                        <Trash2 size={12} /> Hapus Semua {riskType === 'operasional' ? 'Subkegiatan' : 'Program'}
+                        <Trash2 size={10} /> Hapus Semua
                       </button>
                     )}
                   </div>
@@ -6573,10 +6570,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             updateData({ ikuProgram: [] });
                           }
                         }}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 hover:bg-red-50 px-2.5 py-1 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
+                        className="flex items-center gap-1 text-[8px] font-bold text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-0.5 rounded transition-all uppercase tracking-wider border border-red-200 ml-auto"
                         title={`Hapus semua baris ${riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program'}`}
                       >
-                        <Trash2 size={12} /> Hapus Semua {riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program'}
+                        <Trash2 size={10} /> Hapus Semua
                       </button>
                     )}
                   </div>
@@ -6605,7 +6602,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             }
           </h4>
           {!isReadOnly && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex gap-2">
               <button 
                 onClick={() => openPasteModal('assessment')}
                 className="text-[10px] bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded font-bold uppercase flex items-center gap-2 hover:bg-slate-50 transition-colors"
@@ -6618,19 +6615,6 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
               >
                 <Plus size={12} /> Tambah Baris
               </button>
-              {(formData.assessmentRows || []).length > 0 && (
-                <button 
-                  onClick={() => {
-                    if (window.confirm("Apakah Anda yakin ingin menghapus SEMUA baris pada tabel penilaian risiko di bawah ini?")) {
-                      updateData({ assessmentRows: [] });
-                    }
-                  }}
-                  className="text-[10px] bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded font-black uppercase flex items-center gap-1.5 hover:bg-red-600 hover:text-white transition-colors"
-                  title="Hapus semua baris pada tabel penilaian risiko"
-                >
-                  <Trash2 size={12} /> Hapus Semua Baris
-                </button>
-              )}
             </div>
           )}
         </div>
