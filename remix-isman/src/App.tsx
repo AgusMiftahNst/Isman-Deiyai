@@ -203,7 +203,7 @@ const MENU_ITEMS_BASE: MenuItem[] = [
   { id: 11, title: 'XI. MANAJEMEN AKUN', icon: LayoutDashboard },
 ];
 
-const AVAILABLE_YEARS = ['2026', '2027', '2028', '2029', '2030'];
+const AVAILABLE_YEARS = ['2027', '2028', '2029', '2030'];
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInAnonymously } from 'firebase/auth';
@@ -212,7 +212,11 @@ import { db, auth, googleProvider } from './lib/firebase';
 
 export default function App() {
   const [selectedYear, setSelectedYear] = useState<string>(() => {
-    return localStorage.getItem('isman_selected_year') || '2026';
+    const saved = localStorage.getItem('isman_selected_year');
+    if (saved && AVAILABLE_YEARS.includes(saved)) {
+      return saved;
+    }
+    return '2027';
   });
   const [user, setUser] = useState<{username: string; role: string; uid: string} | null>(() => {
     const savedUser = localStorage.getItem('isman_user');
@@ -7498,7 +7502,7 @@ function UserUploadView({
   hasConfirmedUpload, 
   setHasConfirmedUpload, 
   onConfirm,
-  selectedYear = '2026'
+  selectedYear = '2027'
 }: { 
   user: any, 
   riskType: string, 
