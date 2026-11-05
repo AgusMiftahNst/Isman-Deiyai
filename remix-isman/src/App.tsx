@@ -1893,7 +1893,7 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
   const [risksState, setRisksState] = useState<any[]>([]);
   const [contextsState, setContextsState] = useState<any[]>([]);
   const [finalDocsState, setFinalDocsState] = useState<any[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'name'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | 'name'>('desc');
   const [isExporting, setIsExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -2356,15 +2356,69 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
       filtered = filtered.filter(acc => (acc.username || '').toLowerCase().includes(q));
     }
 
+    const getAccountMetrics = (acc: any) => {
+      const s = stats[acc.uid];
+      const rso = s?.strategis?.percent || 0;
+      const roo = s?.operasional?.percent || 0;
+      const both100 = rso === 100 && roo === 100;
+      const one100 = (rso === 100 || roo === 100) && !both100;
+      const tier = both100 ? 3 : (one100 ? 2 : 1);
+      const total = rso + roo;
+      const activePercent = filterRiskType === 'strategis' ? rso : roo;
+      const otherPercent = filterRiskType === 'strategis' ? roo : rso;
+      return { tier, total, activePercent, otherPercent, both100, one100, rso, roo };
+    };
+
     if (sortOrder === 'name') {
       return filtered.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
     }
+
+    if (sortOrder === 'desc') {
+      return filtered.sort((a, b) => {
+        const mA = getAccountMetrics(a);
+        const mB = getAccountMetrics(b);
+
+        // 1. Yang sudah Strategis DAN Operasional (keduanya 100%) paling atas
+        if (mB.tier !== mA.tier) {
+          return mB.tier - mA.tier;
+        }
+
+        // 2. Barulah yang strategis atau operasional saja berdasarkan persentase penyelesaian
+        if (mB.total !== mA.total) {
+          return mB.total - mA.total;
+        }
+
+        // 3. Jika total sama, dahulukan yang persentase pada tab aktif lebih tinggi
+        if (mB.activePercent !== mA.activePercent) {
+          return mB.activePercent - mA.activePercent;
+        }
+
+        if (mB.otherPercent !== mA.otherPercent) {
+          return mB.otherPercent - mA.otherPercent;
+        }
+
+        // 4. Urutkan berdasarkan abjad jika sama
+        return (a.username || '').localeCompare(b.username || '');
+      });
+    }
+
+    // sortOrder === 'asc'
     return filtered.sort((a, b) => {
-      const percentA = stats[a.uid]?.percent || 0;
-      const percentB = stats[b.uid]?.percent || 0;
-      return sortOrder === 'desc' ? percentB - percentA : percentA - percentB;
+      const mA = getAccountMetrics(a);
+      const mB = getAccountMetrics(b);
+
+      if (mA.tier !== mB.tier) {
+        return mA.tier - mB.tier;
+      }
+      if (mA.total !== mB.total) {
+        return mA.total - mB.total;
+      }
+      if (mA.activePercent !== mB.activePercent) {
+        return mA.activePercent - mB.activePercent;
+      }
+      return (a.username || '').localeCompare(b.username || '');
     });
-  }, [accounts, stats, sortOrder, searchQuery, user.role]);
+  }, [accounts, stats, sortOrder, searchQuery, user.role, filterRiskType]);
 
   const handleDownloadReport = async () => {
     setIsExporting(true);
