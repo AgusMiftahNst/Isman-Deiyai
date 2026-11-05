@@ -1723,16 +1723,7 @@ export default function App() {
                </button>
             </div>
 
-            {!isActuallyReadOnly && (
-              <>
-                {activeMenu === 2 ? null : activeMenu !== 0 && activeMenu !== 8 && activeMenu !== 10 && (
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                    <Plus size={16} />
-                    Tambah Data
-                  </button>
-                )}
-              </>
-            )}
+
           </div>
         </header>
 
