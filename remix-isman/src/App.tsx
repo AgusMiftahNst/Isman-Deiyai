@@ -38,7 +38,8 @@ import {
   ExternalLink,
   ShieldCheck,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -6153,6 +6154,25 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
     }
   };
 
+  const handleInsertAt = (
+    currentList: any[],
+    newItem: any,
+    updateKey: string,
+    label: string
+  ) => {
+    const total = (currentList || []).length;
+    const input = window.prompt(`Sisipkan baris ${label} di nomor urut berapa? (1 - ${total + 1}):`, `${total > 0 ? total : 1}`);
+    if (!input) return;
+    const num = parseInt(input.trim(), 10);
+    if (!isNaN(num) && num >= 1 && num <= total + 1) {
+      const next = [...(currentList || [])];
+      next.splice(num - 1, 0, newItem);
+      updateData({ [updateKey]: next });
+    } else {
+      alert(`Nomor tidak valid. Harap masukkan angka antara 1 dan ${total + 1}.`);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isReadOnly) return;
     updateData({ [e.target.name]: e.target.value });
@@ -6319,18 +6339,64 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       }}
                     />
                     {!isReadOnly && (
-                      <button 
-                        onClick={() => {
-                          const label = riskType === 'operasional' ? "program" : "sasaran strategis";
-                          if (window.confirm(`Hapus ${label} ini?`)) {
-                            const next = formData.sasaran.filter((_: any, i: number) => i !== idx);
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = [...formData.sasaran];
+                            next.splice(idx + 1, 0, '');
                             updateData({ sasaran: next });
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                      >
-                        <X size={14} />
-                      </button>
+                          }}
+                          className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {idx > 0 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.sasaran];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx - 1, 0, moved);
+                              updateData({ sasaran: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke atas"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                        )}
+                        {idx < (formData.sasaran || []).length - 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.sasaran];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx + 1, 0, moved);
+                              updateData({ sasaran: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke bawah"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const label = riskType === 'operasional' ? "program" : "sasaran strategis";
+                            if (window.confirm(`Hapus ${label} no. ${idx + 1} ini?`)) {
+                              const next = formData.sasaran.filter((_: any, i: number) => i !== idx);
+                              updateData({ sasaran: next });
+                            }
+                          }}
+                          className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Hapus baris ini"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
@@ -6339,16 +6405,24 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => updateData({ sasaran: [...(formData.sasaran || []), ''] })}
-                      className="flex items-center gap-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
                     >
                       <Plus size={12} /> Tambah {riskType === 'operasional' ? 'Program' : 'Sasaran Strategis'}
                     </button>
                     <button 
+                      type="button"
+                      onClick={() => handleInsertAt(formData.sasaran, '', 'sasaran', riskType === 'operasional' ? 'Program' : 'Sasaran Strategis')}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      title="Sisipkan baris baru di nomor urut tertentu"
+                    >
+                      <Plus size={12} /> Sisipkan di No...
+                    </button>
+                    <button 
                       onClick={() => openPasteModal('sasaran')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
                     >
                       <ClipboardList size={12} /> Paste {riskType === 'operasional' ? 'Program' : 'Sasaran'} (Excel)
                     </button>
@@ -6390,17 +6464,63 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       }}
                     />
                     {riskType === 'operasional' && !isReadOnly && (
-                      <button 
-                        onClick={() => {
-                          if (window.confirm(`Hapus kegiatan utama ini?`)) {
-                            const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = [...formData.ikuSasaran];
+                            next.splice(idx + 1, 0, { name: '', target: '' });
                             updateData({ ikuSasaran: next });
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                      >
-                        <X size={14} />
-                      </button>
+                          }}
+                          className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {idx > 0 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.ikuSasaran];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx - 1, 0, moved);
+                              updateData({ ikuSasaran: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke atas"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                        )}
+                        {idx < (formData.ikuSasaran || []).length - 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.ikuSasaran];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx + 1, 0, moved);
+                              updateData({ ikuSasaran: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke bawah"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Hapus kegiatan utama no. ${idx + 1} ini?`)) {
+                              const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                              updateData({ ikuSasaran: next });
+                            }
+                          }}
+                          className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Hapus baris ini"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
@@ -6418,17 +6538,63 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                         }}
                       />
                       {!isReadOnly && (
-                        <button 
-                          onClick={() => {
-                            if (window.confirm(`Hapus IKU sasaran ini?`)) {
-                              const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.ikuSasaran];
+                              next.splice(idx + 1, 0, { name: '', target: '' });
                               updateData({ ikuSasaran: next });
-                            }
-                          }}
-                          className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                        >
-                          <X size={14} />
-                        </button>
+                            }}
+                            className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                            title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                          >
+                            <Plus size={14} />
+                          </button>
+                          {idx > 0 && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const next = [...formData.ikuSasaran];
+                                const [moved] = next.splice(idx, 1);
+                                next.splice(idx - 1, 0, moved);
+                                updateData({ ikuSasaran: next });
+                              }}
+                              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              title="Geser baris ke atas"
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                          )}
+                          {idx < (formData.ikuSasaran || []).length - 1 && (
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                const next = [...formData.ikuSasaran];
+                                const [moved] = next.splice(idx, 1);
+                                next.splice(idx + 1, 0, moved);
+                                updateData({ ikuSasaran: next });
+                              }}
+                              className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                              title="Geser baris ke bawah"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                          )}
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Hapus IKU sasaran no. ${idx + 1} ini?`)) {
+                                const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                                updateData({ ikuSasaran: next });
+                              }
+                            }}
+                            className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Hapus baris ini"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </td>
@@ -6438,16 +6604,24 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => updateData({ ikuSasaran: [...(formData.ikuSasaran || []), { name: '', target: '' }] })}
-                      className="flex items-center gap-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
                     >
                       <Plus size={12} /> Tambah {riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran OPD'}
                     </button>
                     <button 
+                      type="button"
+                      onClick={() => handleInsertAt(formData.ikuSasaran, { name: '', target: '' }, 'ikuSasaran', riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran OPD')}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      title="Sisipkan baris baru di nomor urut tertentu"
+                    >
+                      <Plus size={12} /> Sisipkan di No...
+                    </button>
+                    <button 
                       onClick={() => openPasteModal('ikuSasaran')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
                     >
                       <ClipboardList size={12} /> Paste {riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU'} (Excel)
                     </button>
@@ -6489,18 +6663,64 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       }}
                     />
                     {!isReadOnly && (
-                      <button 
-                        onClick={() => {
-                          const label = riskType === 'operasional' ? "subkegiatan" : "program strategis";
-                          if (window.confirm(`Hapus ${label} ini?`)) {
-                            const next = formData.program.filter((_: any, i: number) => i !== idx);
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = [...formData.program];
+                            next.splice(idx + 1, 0, '');
                             updateData({ program: next });
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                      >
-                        <X size={14} />
-                      </button>
+                          }}
+                          className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {idx > 0 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.program];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx - 1, 0, moved);
+                              updateData({ program: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke atas"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                        )}
+                        {idx < (formData.program || []).length - 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...formData.program];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx + 1, 0, moved);
+                              updateData({ program: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke bawah"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const label = riskType === 'operasional' ? "subkegiatan" : "program strategis";
+                            if (window.confirm(`Hapus ${label} no. ${idx + 1} ini?`)) {
+                              const next = formData.program.filter((_: any, i: number) => i !== idx);
+                              updateData({ program: next });
+                            }
+                          }}
+                          className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Hapus baris ini"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
@@ -6509,16 +6729,24 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => updateData({ program: [...(formData.program || []), ''] })}
-                      className="flex items-center gap-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
                     >
                       <Plus size={12} /> Tambah {riskType === 'operasional' ? 'Subkegiatan' : 'Program Strategis'}
                     </button>
                     <button 
+                      type="button"
+                      onClick={() => handleInsertAt(formData.program, '', 'program', riskType === 'operasional' ? 'Subkegiatan' : 'Program Strategis')}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      title="Sisipkan baris baru di nomor urut tertentu"
+                    >
+                      <Plus size={12} /> Sisipkan di No...
+                    </button>
+                    <button 
                       onClick={() => openPasteModal('program')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
                     >
                       <ClipboardList size={12} /> Paste {riskType === 'operasional' ? 'Subkegiatan' : 'Program'} (Excel)
                     </button>
@@ -6574,18 +6802,64 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       }}
                     />
                     {!isReadOnly && (
-                      <button 
-                        onClick={() => {
-                          const label = riskType === 'operasional' ? "indikator keluaran" : "IKU program";
-                          if (window.confirm(`Hapus ${label} ini?`)) {
-                            const next = (formData.ikuProgram || []).filter((_: any, i: number) => i !== idx);
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = [...(formData.ikuProgram || [])];
+                            next.splice(idx + 1, 0, { name: '', target: '' });
                             updateData({ ikuProgram: next });
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                      >
-                        <X size={14} />
-                      </button>
+                          }}
+                          className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {idx > 0 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...(formData.ikuProgram || [])];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx - 1, 0, moved);
+                              updateData({ ikuProgram: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke atas"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                        )}
+                        {idx < (formData.ikuProgram || []).length - 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...(formData.ikuProgram || [])];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx + 1, 0, moved);
+                              updateData({ ikuProgram: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke bawah"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const label = riskType === 'operasional' ? "indikator keluaran" : "IKU program";
+                            if (window.confirm(`Hapus ${label} no. ${idx + 1} ini?`)) {
+                              const next = (formData.ikuProgram || []).filter((_: any, i: number) => i !== idx);
+                              updateData({ ikuProgram: next });
+                            }
+                          }}
+                          className="p-1 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Hapus baris ini"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </td>
@@ -6594,16 +6868,24 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button 
                       onClick={() => updateData({ ikuProgram: [...(formData.ikuProgram || []), { name: '', target: '' }] })}
-                      className="flex items-center gap-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 rounded transition-all uppercase tracking-wider"
                     >
                       <Plus size={12} /> Tambah {riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD'}
                     </button>
                     <button 
+                      type="button"
+                      onClick={() => handleInsertAt(formData.ikuProgram, { name: '', target: '' }, 'ikuProgram', riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD')}
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 hover:bg-blue-100 bg-blue-50 border border-blue-200 px-2 py-1 rounded transition-all uppercase tracking-wider"
+                      title="Sisipkan baris baru di nomor urut tertentu"
+                    >
+                      <Plus size={12} /> Sisipkan di No...
+                    </button>
+                    <button 
                       onClick={() => openPasteModal('ikuProgram')}
-                      className="flex items-center gap-2 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
+                      className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 hover:text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition-all uppercase tracking-wider border border-slate-200"
                     >
                       <ClipboardList size={12} /> Paste {riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program'} (Excel)
                     </button>
@@ -6647,18 +6929,26 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
             }
           </h4>
           {!isReadOnly && (
-            <div className="flex gap-2">
-              <button 
-                onClick={() => openPasteModal('assessment')}
-                className="text-[10px] bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded font-bold uppercase flex items-center gap-2 hover:bg-slate-50 transition-colors"
-              >
-                <ClipboardList size={12} /> Paste Assessment (Excel)
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
               <button 
                 onClick={() => updateData({ assessmentRows: [...(formData.assessmentRows || []), { tujuan: '', sasaran: '', program: '', iku: '' }] })}
-                className="text-[10px] bg-slate-900 text-white px-3 py-1.5 rounded font-black uppercase flex items-center gap-2 hover:bg-slate-800 transition-colors"
+                className="text-[10px] bg-slate-900 text-white px-3 py-1.5 rounded font-black uppercase flex items-center gap-1.5 hover:bg-slate-800 transition-colors shadow-xs"
               >
                 <Plus size={12} /> Tambah Baris
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleInsertAt(formData.assessmentRows, { tujuan: '', sasaran: '', program: '', iku: '' }, 'assessmentRows', 'Pemetaan Penilaian Risiko')}
+                className="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded font-bold uppercase flex items-center gap-1.5 hover:bg-blue-100 transition-colors shadow-xs"
+                title="Sisipkan baris baru di nomor urut tertentu"
+              >
+                <Plus size={12} /> Sisipkan di No...
+              </button>
+              <button 
+                onClick={() => openPasteModal('assessment')}
+                className="text-[10px] bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded font-bold uppercase flex items-center gap-1.5 hover:bg-slate-50 transition-colors shadow-xs"
+              >
+                <ClipboardList size={12} /> Paste Assessment (Excel)
               </button>
             </div>
           )}
@@ -6673,7 +6963,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                 <th className="px-4 py-3 w-48">{riskType === 'operasional' ? 'Kegiatan' : 'Sasaran Strategis'}</th>
                 <th className="px-4 py-3 w-48">{riskType === 'operasional' ? 'Subkegiatan' : 'Program Strategis'}</th>
                 <th className="px-4 py-3">{riskType === 'operasional' ? 'Keluaran/Hasil Subkegiatan' : 'IKU Program'}</th>
-                <th className={`px-2 py-3 w-12 bg-red-900 ${isReadOnly ? 'hidden' : ''}`}>Aksi</th>
+                <th className={`px-2 py-3 w-28 text-center bg-slate-800 ${isReadOnly ? 'hidden' : ''}`}>Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-300">
@@ -6760,16 +7050,63 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                   </td>
                   {!isReadOnly && (
                     <td className="px-2 py-4 text-center">
-                      <button 
-                        onClick={() => {
-                          const next = formData.assessmentRows.filter((_: any, i: number) => i !== idx);
-                          updateData({ assessmentRows: next });
-                        }}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                        title="Hapus Baris"
-                      >
-                        <X size={16} />
-                      </button>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = [...(formData.assessmentRows || [])];
+                            next.splice(idx + 1, 0, { tujuan: '', sasaran: '', program: '', iku: '' });
+                            updateData({ assessmentRows: next });
+                          }}
+                          className="p-1 rounded text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                          title={`Sisipkan baris baru setelah No. ${idx + 1}`}
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {idx > 0 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...(formData.assessmentRows || [])];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx - 1, 0, moved);
+                              updateData({ assessmentRows: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke atas"
+                          >
+                            <ChevronUp size={14} />
+                          </button>
+                        )}
+                        {idx < (formData.assessmentRows || []).length - 1 && (
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const next = [...(formData.assessmentRows || [])];
+                              const [moved] = next.splice(idx, 1);
+                              next.splice(idx + 1, 0, moved);
+                              updateData({ assessmentRows: next });
+                            }}
+                            className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Geser baris ke bawah"
+                          >
+                            <ChevronDown size={14} />
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`Hapus baris pemetaan no. ${idx + 1} ini?`)) {
+                              const next = formData.assessmentRows.filter((_: any, i: number) => i !== idx);
+                              updateData({ assessmentRows: next });
+                            }
+                          }}
+                          className="p-1 rounded text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+                          title="Hapus Baris"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
