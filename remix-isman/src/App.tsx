@@ -39,7 +39,10 @@ import {
   ShieldCheck,
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Wifi,
+  WifiOff,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as XLSX from 'xlsx';
@@ -243,6 +246,31 @@ export default function App() {
   const [changePassError, setChangePassError] = useState('');
   const [changePassSuccess, setChangePassSuccess] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [showReconnectedAlert, setShowReconnectedAlert] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowReconnectedAlert(true);
+      const timer = setTimeout(() => {
+        setShowReconnectedAlert(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowReconnectedAlert(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const menuItems = useMemo(() => {
     if (!user) return [];
@@ -623,7 +651,7 @@ export default function App() {
         const row2SubHdr = ws1.getRow(curR);
         row2SubHdr.getCell(1).value = 'No'; row2SubHdr.getCell(2).value = riskType === 'operasional' ? 'Subkegiatan' : 'Program Strategis';
         row2SubHdr.getCell(3).value = 'No'; row2SubHdr.getCell(4).value = riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD'; 
-        if (riskType !== 'operasional') row2SubHdr.getCell(5).value = 'Target';
+        row2SubHdr.getCell(5).value = 'Target';
         [1, 2].forEach(c => styleHdr(ws1, curR, c));
         [3, 4, 5].forEach(c => styleHdr(ws1, curR, c));
         curR += 1;
@@ -643,11 +671,13 @@ export default function App() {
             });
           }
           if (ikuProgramList[i]) {
+            const ikuItem = ikuProgramList[i];
+            const ikuName = typeof ikuItem === 'object' ? (ikuItem?.name || '') : String(ikuItem || '');
+            const ikuTarget = typeof ikuItem === 'object' ? (ikuItem?.target || '') : '';
             r.getCell(3).value = i + 1;
-            r.getCell(4).value = ikuProgramList[i].name;
-            if (riskType !== 'operasional') r.getCell(5).value = ikuProgramList[i].target;
+            r.getCell(4).value = ikuName;
+            r.getCell(5).value = ikuTarget;
             [3, 4, 5].forEach(c => {
-              if (riskType === 'operasional' && c === 5) return;
               r.getCell(c).border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
               r.getCell(c).alignment = { vertical: 'middle', wrapText: true };
             });
@@ -1048,9 +1078,13 @@ export default function App() {
           ...tS,
           margin: { left: m, right: m },
           head: [
-            riskType === 'operasional'
-              ? [{ content: 'NO', styles: { halign: 'center' } }, 'SUBKEGIATAN', { content: 'NO', styles: { halign: 'center' } }, 'INDIKATOR KELUARAN']
-              : [{ content: 'NO', styles: { halign: 'center' } }, 'PROGRAM STRATEGIS', { content: 'NO', styles: { halign: 'center' } }, 'IKU PROGRAM OPD', { content: 'TARGET', styles: { halign: 'center' } }]
+            [
+              { content: 'NO', styles: { halign: 'center' } },
+              riskType === 'operasional' ? 'SUBKEGIATAN' : 'PROGRAM STRATEGIS',
+              { content: 'NO', styles: { halign: 'center' } },
+              riskType === 'operasional' ? 'INDIKATOR KELUARAN' : 'IKU PROGRAM OPD',
+              { content: 'TARGET', styles: { halign: 'center' } }
+            ]
           ],
           body: (() => {
             const program = ctx.program || [];
@@ -1060,21 +1094,17 @@ export default function App() {
             for (let i = 0; i < maxLen; i++) {
               const p = program[i] || '';
               const iku = ikuProgram[i] || {};
-              const ikuName = iku.name || '';
-              const ikuTarget = iku.target || '';
+              const ikuName = typeof iku === 'object' ? (iku.name || '') : String(iku || '');
+              const ikuTarget = typeof iku === 'object' ? (iku.target || '') : '';
 
-              if (riskType === 'operasional') {
-                rows.push([p ? i + 1 : '', p, ikuName ? i + 1 : '', ikuName]);
-              } else {
-                rows.push([p ? i + 1 : '', p, ikuName ? i + 1 : '', ikuName, ikuTarget]);
-              }
+              rows.push([p ? i + 1 : '', p, ikuName ? i + 1 : '', ikuName, ikuTarget]);
             }
             return rows;
           })(),
           columnStyles: { 
             0: { cellWidth: 8, halign: 'center' },
             2: { cellWidth: 8, halign: 'center' },
-            ...(riskType === 'operasional' ? {} : { 4: { cellWidth: 18, halign: 'center' } })
+            4: { cellWidth: 18, halign: 'center' }
           },
           theme: 'grid'
         });
@@ -1507,12 +1537,25 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} accounts={accounts} />;
+    return <LoginPage onLogin={handleLogin} accounts={accounts} isOnline={isOnline} />;
   }
 
   if (user && !selectedRiskType && user.role !== 'Administrator') {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-900 to-slate-900">
+        {!isOnline && (
+          <div className="w-full max-w-2xl mb-4 bg-red-600 text-white p-4 rounded-2xl shadow-xl border border-red-500 flex items-start gap-3">
+            <WifiOff size={22} className="shrink-0 mt-0.5 text-white animate-bounce" />
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                <span>Peringatan: Koneksi Terputus (Offline)</span>
+              </h4>
+              <p className="text-[11px] text-red-100 mt-1 leading-snug">
+                Perangkat Anda tidak terhubung ke internet. Mohon sambungkan kembali sebelum memilih kategori dan mengisi data agar perubahan Anda tidak hilang.
+              </p>
+            </div>
+          </div>
+        )}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1681,6 +1724,28 @@ export default function App() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {/* Connection Status Badge */}
+            <div className="flex items-center">
+              {isOnline ? (
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-xs"
+                  title="Terhubung ke Server (Online)"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <Wifi size={13} className="text-emerald-600" />
+                  <span className="hidden sm:inline">Online</span>
+                </div>
+              ) : (
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-100 border border-red-300 text-red-700 rounded-xl text-[10px] font-black uppercase tracking-wider animate-pulse shadow-xs"
+                  title="Tidak Terhubung ke Internet (Data Tidak Tersimpan!)"
+                >
+                  <WifiOff size={13} className="text-red-600" />
+                  <span>Offline (Tidak Tersimpan)</span>
+                </div>
+              )}
+            </div>
+
             {/* Year Selector Dropdown */}
             <div className="relative flex items-center bg-white border border-slate-200 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-500/20 rounded-xl px-2.5 py-1.5 shadow-xs transition-all">
               <Calendar size={13} className="text-blue-600 mr-1.5 shrink-0" />
@@ -1727,6 +1792,66 @@ export default function App() {
 
           </div>
         </header>
+
+        {/* Sticky Offline Warning Banner */}
+        {!isOnline && (
+          <div className="bg-red-600 text-white px-6 py-3 shadow-lg flex items-center justify-between z-50 shrink-0 border-b-2 border-red-700 animate-in slide-in-from-top duration-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-700/90 rounded-xl shrink-0 shadow-inner">
+                <WifiOff size={22} className="text-white animate-bounce" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-black text-[11px] uppercase tracking-wider bg-white text-red-700 px-2 py-0.5 rounded-md shadow-xs">
+                    PERINGATAN: KONEKSI TERPUTUS (OFFLINE)
+                  </span>
+                  <span className="text-xs font-bold text-red-100">
+                    Perangkat Anda sedang tidak terhubung ke jaringan internet!
+                  </span>
+                </div>
+                <p className="text-[11px] text-red-100 mt-0.5 leading-snug">
+                  Data yang Anda ketik atau ubah saat offline <strong className="underline text-white font-black">TIDAK AKAN TERSIMPAN</strong> ke database server. Pastikan koneksi internet aktif kembali sebelum melanjutkan pengisian data.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-4">
+              <button 
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.onLine) {
+                    setIsOnline(true);
+                    setShowReconnectedAlert(true);
+                  } else {
+                    alert('Perangkat masih belum mendeteksi koneksi internet. Silakan periksa koneksi Wi-Fi atau paket data Anda.');
+                  }
+                }}
+                className="px-3.5 py-1.5 bg-white hover:bg-red-50 text-red-700 font-black text-xs uppercase tracking-wider rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <RotateCw size={13} /> Cek Koneksi
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Reconnected Success Banner */}
+        {showReconnectedAlert && isOnline && (
+          <div className="bg-emerald-600 text-white px-6 py-2.5 shadow-md flex items-center justify-between z-50 shrink-0 border-b border-emerald-700 animate-in slide-in-from-top duration-200">
+            <div className="flex items-center gap-2.5">
+              <Wifi size={18} className="text-white shrink-0" />
+              <span className="text-xs font-black uppercase tracking-wider">
+                KONEKSI KEMBALI TERHUBUNG (ONLINE)
+              </span>
+              <span className="text-xs text-emerald-100">
+                — Aplikasi telah terhubung kembali ke server dan siap menyimpan data.
+              </span>
+            </div>
+            <button 
+              onClick={() => setShowReconnectedAlert(false)}
+              className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         <section className="flex-1 overflow-y-auto p-8">
           <AnimatePresence mode="wait">
@@ -1982,7 +2107,7 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
       // 4. Residual Sheet
       const ws4 = workbook.addWorksheet('RESIDUAL & RTP');
       const ws4Hdr = ['NAMA OPD', 'NO', 'KODE', 'URAIAN RISIKO', 'RESIDUAL D', 'RESIDUAL K', 'RESKORE', 'LEVEL', 'KENDALI', 'GAP', 'AKSI RTP', 'PJ', 'DEADLINE'];
-      ws4Hdr;
+      ws4.getRow(1).values = ws4Hdr;
       styleHdr(ws4, 1, ws4Hdr.length);
       let r4 = 2;
       sortedAccounts.forEach(acc => {
@@ -2790,7 +2915,7 @@ function MonitoringProgressView({ user, onSelectUser, selectedYear }: { user: an
   );
 }
 
-function LoginPage({ onLogin, accounts }: { onLogin: (userData: any) => void, accounts: any[] }) {
+function LoginPage({ onLogin, accounts, isOnline = true }: { onLogin: (userData: any) => void, accounts: any[], isOnline?: boolean }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -2799,6 +2924,10 @@ function LoginPage({ onLogin, accounts }: { onLogin: (userData: any) => void, ac
 
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!navigator.onLine) {
+      setError('Perangkat Anda sedang offline. Mohon hubungkan ke jaringan internet untuk masuk ke sistem.');
+      return;
+    }
     setError('');
     setIsLoggingIn(true);
     
@@ -2846,6 +2975,19 @@ function LoginPage({ onLogin, accounts }: { onLogin: (userData: any) => void, ac
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-900 to-slate-900">
+      {!isOnline && (
+        <div className="w-full max-w-md mb-4 bg-red-600 text-white p-4 rounded-2xl shadow-xl border border-red-500 flex items-start gap-3">
+          <WifiOff size={22} className="shrink-0 mt-0.5 text-white animate-bounce" />
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+              <span>Perangkat Sedang Offline</span>
+            </h4>
+            <p className="text-[11px] text-red-100 mt-1 leading-snug">
+              Anda tidak terhubung ke jaringan internet. Masuk ke sistem dan penyimpanan data membutuhkan koneksi aktif.
+            </p>
+          </div>
+        </div>
+      )}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -4335,27 +4477,96 @@ function RiskResidualView({ user, isReadOnly, riskType, selectedYear }: { user: 
       setLoading(true);
       setShowPasteModal(false);
 
+      const parseNum = (val: any) => {
+        if (typeof val === 'number') return val;
+        const cleaned = String(val || '').trim().replace(',', '.');
+        const n = parseFloat(cleaned);
+        return isNaN(n) ? 0 : n;
+      };
+
+      let validRowIdx = 0;
       for (const line of rawRows) {
-        const cols = line.split('\t');
-        if (cols.length < 2) continue;
+        let cols = line.includes('\t') ? line.split('\t') : line.includes(';') ? line.split(';') : [line];
+        cols = cols.map(c => c.trim().replace(/^["']|["']$/g, '').trim());
+        if (cols.length === 0) continue;
 
-        const [kode, control, gap, d, k] = cols;
-        const targetRow = rows.find(r => r.risikoKode === kode.trim());
-        if (!targetRow) continue;
+        // Skip headers
+        if (cols.some(c => /^(no|nomor|kode|risiko|pengendalian|celah|residual|dampak|kemungkinan|level)$/i.test(c.trim())) && cols.length >= 2) {
+          continue;
+        }
 
-        await updateDoc(doc(db, 'risk_identification', targetRow.id), {
-          rtpControl: (control || '').trim(),
-          rtpGap: (gap || '').trim(),
-          residualDampak: parseFloat(d) || 0,
-          residualKemungkinan: parseFloat(k) || 0,
-          updatedAt: new Date().toISOString()
-        });
+        let kode = '';
+        let control = '';
+        let gap = '';
+        let dVal = 0;
+        let kVal = 0;
+
+        // Case A: Full Excel export (10-12 columns)
+        // [No, Risiko (Kode: Uraian), D_awal, K_awal, Skor, Level, Pengendalian, Celah, D_res, K_res, Skor_res, Level_res]
+        if (cols.length >= 10) {
+          const rawRisk = cols[1] || '';
+          const matchCode = rawRisk.match(/(RSO|ROO)\.[0-9a-zA-Z\.]+/i);
+          kode = matchCode ? matchCode[0] : '';
+          control = cols[6] || '';
+          gap = cols[7] || '';
+          dVal = parseNum(cols[8]);
+          kVal = parseNum(cols[9]);
+        } 
+        // Case B: 6 columns with leading No [No, Kode, Pengendalian, Celah, D, K]
+        else if (cols.length >= 6 && /^\d+[\.\)]?$/.test(cols[0])) {
+          kode = cols[1] || '';
+          control = cols[2] || '';
+          gap = cols[3] || '';
+          dVal = parseNum(cols[4]);
+          kVal = parseNum(cols[5]);
+        }
+        // Case C: Standard 5 columns [Kode, Pengendalian, Celah, D, K]
+        else if (cols.length >= 5) {
+          kode = cols[0] || '';
+          control = cols[1] || '';
+          gap = cols[2] || '';
+          dVal = parseNum(cols[3]);
+          kVal = parseNum(cols[4]);
+        }
+        // Case D: 4 columns without code [Pengendalian, Celah, D, K]
+        else if (cols.length >= 4) {
+          control = cols[0] || '';
+          gap = cols[1] || '';
+          dVal = parseNum(cols[2]);
+          kVal = parseNum(cols[3]);
+        } else {
+          continue;
+        }
+
+        // Match target row
+        let targetRow = null;
+        if (kode) {
+          const cleanK = kode.trim().toLowerCase();
+          targetRow = rows.find(r => r.risikoKode?.trim().toLowerCase() === cleanK) ||
+                      rows.find(r => r.risikoKode && (cleanK.includes(r.risikoKode.toLowerCase()) || r.risikoKode.toLowerCase().includes(cleanK)));
+        }
+        
+        // Fallback match by sequential row index
+        if (!targetRow && validRowIdx < rows.length) {
+          targetRow = rows[validRowIdx];
+        }
+
+        if (targetRow) {
+          await updateDoc(doc(db, 'risk_identification', targetRow.id), {
+            rtpControl: (control || '').trim(),
+            rtpGap: (gap || '').trim(),
+            residualDampak: dVal || targetRow.residualDampak || 0,
+            residualKemungkinan: kVal || targetRow.residualKemungkinan || 0,
+            updatedAt: new Date().toISOString()
+          });
+        }
+        validRowIdx++;
       }
       setPasteData('');
       alert('Berhasil mengimpor data penilaian residual.');
     } catch (err) {
       console.error('Import error:', err);
-      alert('Gagal mengimpor data.');
+      alert('Gagal mengimpor data penilaian residual.');
     } finally {
       setLoading(false);
     }
@@ -6084,10 +6295,172 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
   const [pasteData, setPasteData] = useState('');
   const [pasteType, setPasteType] = useState<'sasaran' | 'ikuSasaran' | 'program' | 'ikuProgram' | 'assessment'>('assessment');
 
+  const splitPasteRows = (text: string): string[] => {
+    const rows: string[] = [];
+    let currentRow = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+        currentRow += char;
+      } else if ((char === '\n' || (char === '\r' && text[i + 1] === '\n')) && !inQuotes) {
+        if (char === '\r') i++;
+        if (currentRow.trim()) {
+          rows.push(currentRow.trim());
+        }
+        currentRow = '';
+      } else {
+        currentRow += char;
+      }
+    }
+    if (currentRow.trim()) {
+      rows.push(currentRow.trim());
+    }
+    return rows;
+  };
+
+  const parseIkuItem = (rawLine: string): { name: string; target: string } | null => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) return null;
+
+    let cols: string[] = [];
+    if (trimmed.includes('\t')) {
+      cols = trimmed.split('\t');
+    } else if (trimmed.includes(';')) {
+      cols = trimmed.split(';');
+    } else if (trimmed.includes('|')) {
+      cols = trimmed.split('|');
+    } else {
+      cols = [trimmed];
+    }
+
+    cols = cols.map(c => c.trim().replace(/^["']|["']$/g, '').trim());
+
+    // Skip header row if it contains column labels like No, Indikator, Keluaran, Target
+    const isHeaderRow = cols.some(c => 
+      /^(no|nomor|indikator|keluaran|target|satuan|iku|tolok ukur|hasil)$/i.test(c.trim())
+    ) && cols.some(c => 
+      /^(indikator|keluaran|target|satuan|uraian|iku|tolok ukur)$/i.test(c.trim())
+    );
+    if (isHeaderRow) {
+      return null;
+    }
+
+    const isRowNumber = (s: string) => /^\d+[\.\)]?$|^[a-zA-Z][\.\)]?$|^\([0-9a-zA-Z]+\)$|^[-–]$/.test(s.trim());
+
+    // If first column is just a row number (e.g. 1, 2., a.) and there are more columns, drop it
+    if (cols.length > 1 && isRowNumber(cols[0])) {
+      cols.shift();
+    }
+
+    // If first column is a standard SIPD budget code (e.g. 1.01.01.2.01.0001) and there are more columns
+    if (cols.length > 1 && /^(\d+(\.\d+)+)$/.test(cols[0])) {
+      cols.shift();
+    }
+
+    while (cols.length > 0 && !cols[cols.length - 1]) {
+      cols.pop();
+    }
+
+    if (cols.length === 0) return null;
+
+    if (cols.length === 1) {
+      let name = cols[0].replace(/^\d+[\.\)]\s*/, '').trim();
+      if (!name) return null;
+      return { name, target: '' };
+    }
+
+    if (cols.length === 2) {
+      let colA = cols[0].replace(/^\d+[\.\)]\s*/, '').trim();
+      let colB = cols[1].trim();
+
+      // If colA looks like target/number and colB is long text, colB is the name
+      if ((isRowNumber(colA) || /^\d+[\s%a-zA-Z]*$/.test(colA)) && colB.length > colA.length && !/^\d+[\s%a-zA-Z]*$/.test(colB)) {
+        return { name: colB, target: colA };
+      }
+
+      return { name: colA || colB, target: colA ? colB : '' };
+    }
+
+    // cols.length >= 3:
+    // e.g. [Indikator Keluaran, Target, Satuan] -> name = cols[0], target = cols[1] + ' ' + cols[2]
+    let name = cols[0].replace(/^\d+[\.\)]\s*/, '').trim();
+    let remainingTarget = cols.slice(1).filter(Boolean).join(' ').trim();
+
+    if (!name && remainingTarget) {
+      name = remainingTarget;
+      remainingTarget = '';
+    }
+
+    if (!name) return null;
+    return { name, target: remainingTarget };
+  };
+
+  const parseSingleTextItem = (rawLine: string): string | null => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) return null;
+
+    let cols = trimmed.includes('\t') 
+      ? trimmed.split('\t') 
+      : trimmed.includes(';') 
+        ? trimmed.split(';') 
+        : [trimmed];
+
+    cols = cols.map(c => c.trim().replace(/^["']|["']$/g, '').trim()).filter(Boolean);
+    if (cols.length === 0) return null;
+
+    if (cols.some(c => /^(no|nomor|program|kegiatan|subkegiatan|sasaran)$/i.test(c.trim())) && cols.length > 1) {
+      if (cols.some(c => /^(program|kegiatan|subkegiatan|sasaran)$/i.test(c.trim()))) return null;
+    }
+
+    if (cols.length > 1 && (/^\d+[\.\)]?$|^[a-zA-Z][\.\)]?$|^\([0-9a-zA-Z]+\)$/.test(cols[0]) || /^(\d+(\.\d+)+)$/.test(cols[0]))) {
+      cols.shift();
+    }
+
+    let text = cols[0] || '';
+    text = text.replace(/^\d+[\.\)]\s*/, '').trim();
+    return text || null;
+  };
+
+  const parseAssessmentRow = (rawLine: string): { tujuan: string; sasaran: string; program: string; iku: string } | null => {
+    const trimmed = rawLine.trim();
+    if (!trimmed) return null;
+
+    let cols = trimmed.includes('\t') 
+      ? trimmed.split('\t') 
+      : trimmed.includes(';') 
+        ? trimmed.split(';') 
+        : [trimmed];
+
+    cols = cols.map(c => c.trim().replace(/^["']|["']$/g, '').trim());
+
+    if (cols.some(c => /^(no|tujuan|sasaran|program|kegiatan|subkegiatan|iku|keluaran)$/i.test(c.trim())) && cols.length >= 3) {
+      return null;
+    }
+
+    if (cols.length >= 5 && (/^\d+[\.\)]?$/.test(cols[0]) || /^(no|nomor)$/i.test(cols[0]))) {
+      cols.shift();
+    }
+
+    if (cols.length === 0) return null;
+
+    const [tujuan, sasaran, program, iku] = cols;
+    if (!tujuan && !sasaran && !program && !iku) return null;
+
+    return {
+      tujuan: (tujuan || '').trim(),
+      sasaran: (sasaran || '').trim(),
+      program: (program || '').trim(),
+      iku: (iku || '').trim()
+    };
+  };
+
   const processImport = async () => {
     if (!pasteData.trim()) return;
     try {
-      const rawRows = pasteData.split(/\r?\n/).filter(line => line.trim() !== '');
+      const rawRows = splitPasteRows(pasteData);
       if (rawRows.length === 0) return;
 
       setLoading(true);
@@ -6096,37 +6469,25 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
       const updates: any = {};
 
       if (pasteType === 'sasaran') {
-        const newData = rawRows.map(line => line.trim()).filter(Boolean);
-        updates.sasaran = [...(formData.sasaran || []), ...newData];
+        const newData = rawRows.map(line => parseSingleTextItem(line)).filter(Boolean) as string[];
+        const existing = (formData.sasaran || []).filter((s: string) => s && s.trim());
+        updates.sasaran = [...existing, ...newData];
       } else if (pasteType === 'ikuSasaran') {
-        const newData = rawRows.map(line => {
-          const cols = line.split('\t');
-          return { name: (cols[0] || '').trim(), target: (cols[1] || '').trim() };
-        }).filter(item => item.name);
-        updates.ikuSasaran = [...(formData.ikuSasaran || []), ...newData];
+        const newData = rawRows.map(line => parseIkuItem(line)).filter(Boolean) as { name: string; target: string }[];
+        const existing = (formData.ikuSasaran || []).filter((i: any) => i && (i.name?.trim() || i.target?.trim()));
+        updates.ikuSasaran = [...existing, ...newData];
       } else if (pasteType === 'program') {
-        const newData = rawRows.map(line => line.trim()).filter(Boolean);
-        updates.program = [...(formData.program || []), ...newData];
+        const newData = rawRows.map(line => parseSingleTextItem(line)).filter(Boolean) as string[];
+        const existing = (formData.program || []).filter((p: string) => p && p.trim());
+        updates.program = [...existing, ...newData];
       } else if (pasteType === 'ikuProgram') {
-        const newData = rawRows.map(line => {
-          const cols = line.split('\t');
-          return { name: (cols[0] || '').trim(), target: (cols[1] || '').trim() };
-        }).filter(item => item.name);
-        updates.ikuProgram = [...(formData.ikuProgram || []), ...newData];
+        const newData = rawRows.map(line => parseIkuItem(line)).filter(Boolean) as { name: string; target: string }[];
+        const existing = (formData.ikuProgram || []).filter((i: any) => i && (i.name?.trim() || i.target?.trim()));
+        updates.ikuProgram = [...existing, ...newData];
       } else {
-        const newAssessmentRows = [...formData.assessmentRows];
-        for (const line of rawRows) {
-          const cols = line.split('\t');
-          if (cols.length < 1) continue;
-          const [tujuan, sasaran, program, iku] = cols;
-          newAssessmentRows.push({
-            tujuan: (tujuan || '').trim(),
-            sasaran: (sasaran || '').trim(),
-            program: (program || '').trim(),
-            iku: (iku || '').trim()
-          });
-        }
-        updates.assessmentRows = newAssessmentRows;
+        const newItems = rawRows.map(line => parseAssessmentRow(line)).filter(Boolean) as { tujuan: string; sasaran: string; program: string; iku: string }[];
+        const existing = (formData.assessmentRows || []).filter((r: any) => r && (r.tujuan?.trim() || r.sasaran?.trim() || r.program?.trim() || r.iku?.trim()));
+        updates.assessmentRows = [...existing, ...newItems];
       }
 
       await updateData(updates);
@@ -6165,7 +6526,10 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
     if (!input) return;
     const num = parseInt(input.trim(), 10);
     if (!isNaN(num) && num >= 1 && num <= total + 1) {
-      const next = [...(currentList || [])];
+      let next = [...(currentList || [])];
+      if (updateKey === 'ikuProgram' || updateKey === 'ikuSasaran') {
+        next = next.map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
+      }
       next.splice(num - 1, 0, newItem);
       updateData({ [updateKey]: next });
     } else {
@@ -6216,9 +6580,9 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                          pasteType === 'ikuProgram' ? (riskType === 'operasional' ? 'Keluaran' : 'IKU Program') : 'Assessment'} dari Excel
                 </h3>
                 <p className="text-blue-100 text-[9px] font-bold mt-0.5">
-                  {pasteType === 'sasaran' || pasteType === 'program' ? 'Panduan: Copy list data di Excel (Satu kolom saja)' :
-                   pasteType === 'ikuSasaran' || pasteType === 'ikuProgram' ? 'Panduan: Copy 2 kolom di Excel (Uraian | Target)' :
-                   'Panduan: Copy 4 kolom di Excel (Tujuan | Sasaran | Program | IKU)'}
+                  {pasteType === 'sasaran' || pasteType === 'program' ? 'Panduan: Copy 1 kolom uraian dari Excel (otomatis mendeteksi jika ada kolom No)' :
+                   pasteType === 'ikuSasaran' || pasteType === 'ikuProgram' ? 'Panduan: Bisa copy 1 kolom (Uraian Keluaran saja) atau 2 kolom (Uraian | Target), otomatis mendeteksi jika ada kolom No' :
+                   'Panduan: Copy 4 kolom di Excel (Tujuan/Program | Sasaran/Kegiatan | Program/Subkegiatan | IKU/Keluaran)'}
                 </p>
               </div>
               <button onClick={() => setShowPasteModal(false)} className="text-white/80 hover:text-white"><X size={18} /></button>
@@ -6448,18 +6812,22 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
 
           <TableHeader title={riskType === 'operasional' ? 'Kegiatan Utama' : 'IKU Sasaran OPD'} rightLabel={riskType === 'operasional' ? '' : selectedYear} />
           <tbody>
-            {(formData.ikuSasaran || []).map((i: any, idx: number) => (
+            {(formData.ikuSasaran || []).map((i: any, idx: number) => {
+              const currentName = typeof i === 'object' ? (i?.name || '') : String(i || '');
+              const currentTarget = typeof i === 'object' ? (i?.target || '') : '';
+              return (
               <tr key={idx} className="border-b border-slate-200 last:border-0 group">
                 <td className="px-4 py-2 border-r border-slate-200 text-center">{idx + 1}</td>
                 <td className="px-4 py-2" colSpan={riskType === 'operasional' ? 2 : 1}>
                   <div className="flex gap-2 items-center">
                     <EditableInput 
                       className="w-full bg-transparent outline-none disabled:text-slate-500" 
-                      value={i.name} 
+                      value={currentName} 
                       disabled={isReadOnly}
                       onChange={(val) => {
-                        const next = [...formData.ikuSasaran];
-                        next[idx] = { ...next[idx], name: val };
+                        const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
+                        const cur = next[idx] || { name: '', target: '' };
+                        next[idx] = { ...cur, name: val };
                         updateData({ ikuSasaran: next });
                       }}
                     />
@@ -6468,7 +6836,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                         <button 
                           type="button"
                           onClick={() => {
-                            const next = [...formData.ikuSasaran];
+                            const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                             next.splice(idx + 1, 0, { name: '', target: '' });
                             updateData({ ikuSasaran: next });
                           }}
@@ -6481,7 +6849,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <button 
                             type="button"
                             onClick={() => {
-                              const next = [...formData.ikuSasaran];
+                              const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                               const [moved] = next.splice(idx, 1);
                               next.splice(idx - 1, 0, moved);
                               updateData({ ikuSasaran: next });
@@ -6496,7 +6864,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <button 
                             type="button"
                             onClick={() => {
-                              const next = [...formData.ikuSasaran];
+                              const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                               const [moved] = next.splice(idx, 1);
                               next.splice(idx + 1, 0, moved);
                               updateData({ ikuSasaran: next });
@@ -6511,7 +6879,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           type="button"
                           onClick={() => {
                             if (window.confirm(`Hapus kegiatan utama no. ${idx + 1} ini?`)) {
-                              const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                              const next = (formData.ikuSasaran || []).filter((_: any, i: number) => i !== idx);
                               updateData({ ikuSasaran: next });
                             }
                           }}
@@ -6529,11 +6897,12 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                     <div className="flex gap-2 items-center">
                       <EditableInput 
                         className="w-full text-center bg-transparent outline-none disabled:text-slate-500" 
-                        value={i.target} 
+                        value={currentTarget} 
                         disabled={isReadOnly}
                         onChange={(val) => {
-                          const next = [...formData.ikuSasaran];
-                          next[idx] = { ...next[idx], target: val };
+                          const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
+                          const cur = next[idx] || { name: '', target: '' };
+                          next[idx] = { ...cur, target: val };
                           updateData({ ikuSasaran: next });
                         }}
                       />
@@ -6542,7 +6911,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <button 
                             type="button"
                             onClick={() => {
-                              const next = [...formData.ikuSasaran];
+                              const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                               next.splice(idx + 1, 0, { name: '', target: '' });
                               updateData({ ikuSasaran: next });
                             }}
@@ -6555,7 +6924,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             <button 
                               type="button"
                               onClick={() => {
-                                const next = [...formData.ikuSasaran];
+                                const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                                 const [moved] = next.splice(idx, 1);
                                 next.splice(idx - 1, 0, moved);
                                 updateData({ ikuSasaran: next });
@@ -6570,7 +6939,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             <button 
                               type="button"
                               onClick={() => {
-                                const next = [...formData.ikuSasaran];
+                                const next = (formData.ikuSasaran || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                                 const [moved] = next.splice(idx, 1);
                                 next.splice(idx + 1, 0, moved);
                                 updateData({ ikuSasaran: next });
@@ -6585,7 +6954,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                             type="button"
                             onClick={() => {
                               if (window.confirm(`Hapus IKU sasaran no. ${idx + 1} ini?`)) {
-                                const next = formData.ikuSasaran.filter((_: any, i: number) => i !== idx);
+                                const next = (formData.ikuSasaran || []).filter((_: any, i: number) => i !== idx);
                                 updateData({ ikuSasaran: next });
                               }
                             }}
@@ -6600,7 +6969,8 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
@@ -6772,18 +7142,22 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
 
           <TableHeader title={riskType === 'operasional' ? 'Indikator Keluaran' : 'IKU Program OPD'} rightLabel={selectedYear} />
           <tbody>
-            {(formData.ikuProgram || []).map((i: any, idx: number) => (
+            {(formData.ikuProgram || []).map((i: any, idx: number) => {
+              const currentName = typeof i === 'object' ? (i?.name || '') : String(i || '');
+              const currentTarget = typeof i === 'object' ? (i?.target || '') : '';
+              return (
               <tr key={idx} className="border-b border-slate-200 last:border-0 h-8 group">
                 <td className="px-4 py-2 border-r border-slate-200 text-center">{idx + 1}</td>
                 <td className="px-4 py-2">
                   <EditableInput 
                     className="w-full bg-transparent outline-none disabled:text-slate-500" 
                     placeholder="..." 
-                    value={i.name || ''}
+                    value={currentName}
                     disabled={isReadOnly}
                     onChange={(val) => {
-                      const next = [...(formData.ikuProgram || [])];
-                      next[idx] = { ...next[idx], name: val };
+                      const next = (formData.ikuProgram || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
+                      const cur = next[idx] || { name: '', target: '' };
+                      next[idx] = { ...cur, name: val };
                       updateData({ ikuProgram: next });
                     }}
                   />
@@ -6793,11 +7167,12 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                     <EditableInput 
                       className="w-full text-center bg-transparent outline-none disabled:text-slate-500" 
                       placeholder="..." 
-                      value={i.target || ''}
+                      value={currentTarget}
                       disabled={isReadOnly}
                       onChange={(val) => {
-                        const next = [...(formData.ikuProgram || [])];
-                        next[idx] = { ...next[idx], target: val };
+                        const next = (formData.ikuProgram || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
+                        const cur = next[idx] || { name: '', target: '' };
+                        next[idx] = { ...cur, target: val };
                         updateData({ ikuProgram: next });
                       }}
                     />
@@ -6806,7 +7181,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                         <button 
                           type="button"
                           onClick={() => {
-                            const next = [...(formData.ikuProgram || [])];
+                            const next = (formData.ikuProgram || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                             next.splice(idx + 1, 0, { name: '', target: '' });
                             updateData({ ikuProgram: next });
                           }}
@@ -6819,7 +7194,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <button 
                             type="button"
                             onClick={() => {
-                              const next = [...(formData.ikuProgram || [])];
+                              const next = (formData.ikuProgram || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                               const [moved] = next.splice(idx, 1);
                               next.splice(idx - 1, 0, moved);
                               updateData({ ikuProgram: next });
@@ -6834,7 +7209,7 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <button 
                             type="button"
                             onClick={() => {
-                              const next = [...(formData.ikuProgram || [])];
+                              const next = (formData.ikuProgram || []).map((x: any) => typeof x === 'object' ? { name: x?.name || '', target: x?.target || '' } : { name: String(x || ''), target: '' });
                               const [moved] = next.splice(idx, 1);
                               next.splice(idx + 1, 0, moved);
                               updateData({ ikuProgram: next });
@@ -6864,7 +7239,8 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!isReadOnly && (
               <tr className="bg-slate-50/50">
                 <td colSpan={3} className="px-4 py-2">
@@ -6989,6 +7365,9 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       ) : (
                         <option value={formData.tujuanStrategis}>{formData.tujuanStrategis}</option>
                       )}
+                      {riskType === 'operasional' && row.tujuan && !(formData.sasaran || []).includes(row.tujuan) && (
+                        <option value={row.tujuan}>{row.tujuan}</option>
+                      )}
                     </select>
                   </td>
                   <td className="px-2 py-4">
@@ -7012,6 +7391,12 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                           <option key={sIdx} value={s}>{s}</option>
                         ))
                       )}
+                      {riskType === 'operasional' && row.sasaran && !(formData.ikuSasaran || []).some((i: any) => i.name === row.sasaran) && (
+                        <option value={row.sasaran}>{row.sasaran}</option>
+                      )}
+                      {riskType !== 'operasional' && row.sasaran && !(formData.sasaran || []).includes(row.sasaran) && (
+                        <option value={row.sasaran}>{row.sasaran}</option>
+                      )}
                     </select>
                   </td>
                   <td className="px-2 py-4 bg-slate-50/50">
@@ -7029,6 +7414,9 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       {(formData.program || []).map((p: string, pIdx: number) => (
                         <option key={pIdx} value={p}>{p}</option>
                       ))}
+                      {row.program && !(formData.program || []).includes(row.program) && (
+                        <option value={row.program}>{row.program}</option>
+                      )}
                     </select>
                   </td>
                   <td className="px-2 py-4">
@@ -7046,6 +7434,9 @@ function ContextSettingView({ user, isReadOnly, riskType, selectedYear }: { user
                       {(formData.ikuProgram || []).map((i: any, iIdx: number) => (
                         <option key={iIdx} value={i.name}>{i.name}</option>
                       ))}
+                      {row.iku && !(formData.ikuProgram || []).some((i: any) => i.name === row.iku) && (
+                        <option value={row.iku}>{row.iku}</option>
+                      )}
                     </select>
                   </td>
                   {!isReadOnly && (
