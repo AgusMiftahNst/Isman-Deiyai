@@ -8420,7 +8420,8 @@ function UserUploadView({
                     </div>
 
                     {(() => {
-                      const docData = finalDocs.find(d => d.id === user.uid);
+                      const expectedDocId = selectedYear === '2026' ? user.uid : `${user.uid}_${selectedYear}`;
+                      const docData = finalDocs.find(d => d.id === expectedDocId || (d.uid === user.uid && (d.tahun || '2026') === selectedYear) || (selectedYear === '2026' && d.id === user.uid));
                       const status = docData?.status || 'none';
                       const isSubmitted = status === 'pending' || status === 'verified';
 
@@ -8510,7 +8511,8 @@ function UserUploadView({
                 </AnimatePresence>
 
                 {(() => {
-                  const docData = finalDocs.find(d => d.id === user.uid);
+                  const expectedDocId = selectedYear === '2026' ? user.uid : `${user.uid}_${selectedYear}`;
+                  const docData = finalDocs.find(d => d.id === expectedDocId || (d.uid === user.uid && (d.tahun || '2026') === selectedYear) || (selectedYear === '2026' && d.id === user.uid));
                   if (!docData) return null;
 
                   const status = docData.status;
@@ -8911,6 +8913,7 @@ function FinalDocumentView({ user, isAdmin, isOperator, riskType, selectedYear }
             hasConfirmedUpload={hasConfirmedUpload} 
             setHasConfirmedUpload={setHasConfirmedUpload} 
             onConfirm={handleConfirmUpload} 
+            selectedYear={selectedYear}
           />
         ) : (
           <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm p-8">
@@ -8951,15 +8954,19 @@ function FinalDocumentView({ user, isAdmin, isOperator, riskType, selectedYear }
                       <td className="px-6 py-5">
                         <div className="flex flex-col gap-1">
                           {(() => {
-                            const links = opdLinks[d.id] || { driveLink: masterLink };
-                            const driveLink = links.driveLink;
+                            const opdUid = d.uid || d.updatedBy || (typeof d.id === 'string' && d.id.includes('_') ? d.id.split('_')[0] : d.id);
+                            const matchedAccount = !opdLinks[opdUid] && d.username
+                              ? allUsers.find(u => (u.username || '').toLowerCase() === String(d.username).toLowerCase())
+                              : null;
+                            const links = opdLinks[opdUid] || opdLinks[d.id] || (matchedAccount ? opdLinks[matchedAccount.uid] : undefined) || { driveLink: masterLink, uploadLink: '' };
+                            const driveLink = links.driveLink || links.uploadLink || d.link;
                             return driveLink ? (
                               <div className="flex flex-col gap-1.5">
                                 <div className="flex items-center gap-2">
                                   <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" alt="G-Drive" />
                                   <a href={driveLink.startsWith('http') ? driveLink : `https://${driveLink}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline text-[10px] font-black uppercase tracking-widest">Buka Drive OPD</a>
                                 </div>
-                                {links.uploadLink && (
+                                {links.uploadLink && links.uploadLink !== driveLink && (
                                   <div className="flex items-center gap-2 opacity-60">
                                     <ExternalLink size={12} className="text-slate-400" />
                                     <a href={links.uploadLink.startsWith('http') ? links.uploadLink : `https://${links.uploadLink}`} target="_blank" rel="noreferrer" className="text-slate-600 hover:underline text-[9px] font-bold">Link Form User</a>
